@@ -9,6 +9,6 @@ using namespace std;
 int main()
 {
 	transport::TransportCatalogue tc;
-	transport::query::input::Process(cin, tc);
+	transport::query::input::ReadCatalogue(cin, tc);
 	transport::query::stat::Process(cin, cout, tc);
 }

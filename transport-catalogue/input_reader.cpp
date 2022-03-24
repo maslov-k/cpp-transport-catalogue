@@ -73,7 +73,7 @@ void GetStops(vector<const Stop*>& stops, unordered_set<string_view>& unique_sto
     }
 }
 
-void Process(istream& is, TransportCatalogue& tc)
+void ReadCatalogue(istream& is, TransportCatalogue& tc)
 {
     Queries queries;
     int queries_num;

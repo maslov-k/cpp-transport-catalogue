@@ -37,7 +37,7 @@ std::pair<std::string_view, int> GetDistance(std::string_view text, int& pos);
 void GetStops(std::vector<const transport::Stop*>& stops, std::unordered_set<std::string_view>& unique_stops,
     transport::TransportCatalogue& tc, std::string_view text, bool is_circle, int& pos);
 
-void Process(std::istream& is, transport::TransportCatalogue& tc);
+void ReadCatalogue(std::istream& is, transport::TransportCatalogue& tc);
 
 void Read(std::string_view text, Queries& queries);
 

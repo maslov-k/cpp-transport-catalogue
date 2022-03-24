@@ -38,9 +38,9 @@ struct RouteInfo
 class TransportCatalogue
 {
 public:
-	void AddBus(std::string name, std::vector<const Stop*> stops,
-		std::unordered_set<std::string_view> unique_stops);
-	void AddStop(std::string name, geo::Coordinates coordinates);
+	void AddBus(const std::string& name, std::vector<const Stop*> stops,
+		const std::unordered_set<std::string_view>& unique_stops);
+	void AddStop(const std::string& name, geo::Coordinates coordinates);
 	const Bus* SearchBus(std::string_view bus_name) const;
 	const Stop* SearchStop(std::string_view stop_name) const;
 	RouteInfo GetRouteInfo(const Bus* bus) const;
@@ -60,7 +60,9 @@ private:
 	std::unordered_map<std::string_view, const Bus*>	name_to_bus_;
 	std::unordered_map<std::string_view, const Stop*>	name_to_stop_;
 	std::unordered_map<std::string_view, sv_set>		stop_to_buses_;
-	std::unordered_map<std::pair<const Stop*, const Stop*>, int, StopsHasher> distances_between_stops_;
+	std::unordered_map<std::pair<const Stop*,
+		const Stop*>, int, StopsHasher>					distances_between_stops_;
+	std::unordered_map<const Bus*, RouteInfo>			routes_info_;
 
 };
 } //transport

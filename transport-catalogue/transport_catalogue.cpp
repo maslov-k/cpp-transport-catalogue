@@ -6,20 +6,34 @@ using namespace std;
 
 namespace transport
 {
-void TransportCatalogue::AddBus(string name, vector<const Stop*> stops, unordered_set<string_view> unique_stops)
+void TransportCatalogue::AddBus(const string& name, vector<const Stop*> stops, const unordered_set<string_view>& unique_stops)
 {
-	buses_.push_back({ move(name), move(stops), move(unique_stops)});
+	buses_.push_back({ name, move(stops), unique_stops});
 	Bus* bus = &buses_.back();
 	for (string_view stop_name : bus->unique_stops)
 	{
 		stop_to_buses_[stop_name].insert(bus->name);
 	}
 	name_to_bus_[bus->name] = bus;
+
+	int n_stops = bus->stops.size();
+	int n_unique_stops = bus->unique_stops.size();
+	double geo_length = 0;
+	double real_length = 0;
+	for (auto it = bus->stops.begin(); it != prev(bus->stops.end()); ++it)
+	{
+		const Stop* stop_a = *it;
+		const Stop* stop_b = *next(it);
+		geo_length += geo::ComputeDistance(stop_a->coordinates, stop_b->coordinates);
+		real_length += GetDistanceBetweenStops(stop_a, stop_b);
+	}
+	double curvature = real_length / geo_length;
+	routes_info_[bus] = { n_stops, n_unique_stops, real_length, curvature };
 }
 
-void TransportCatalogue::AddStop(string name, geo::Coordinates coordinates)
+void TransportCatalogue::AddStop(const string& name, geo::Coordinates coordinates)
 {
-	stops_.push_back({ move(name), move(coordinates) });
+	stops_.push_back({ name, move(coordinates) });
 	Stop* stop = &stops_.back();
 	name_to_stop_[stop->name] = stop;
 }
@@ -46,20 +60,7 @@ const Stop* TransportCatalogue::SearchStop(string_view stop_name) const
 
 RouteInfo TransportCatalogue::GetRouteInfo(const Bus* bus) const
 {
-	int n_stops = bus->stops.size();
-	int n_unique_stops = bus->unique_stops.size();
-	double geo_length = 0;
-	double real_length = 0;
-	for (auto it = bus->stops.begin(); it != prev(bus->stops.end()); ++it)
-	{
-		const Stop* stop_a = *it;
-		const Stop* stop_b = *next(it);
-		geo_length += geo::ComputeDistance(stop_a->coordinates, stop_b->coordinates);
-		real_length += GetDistanceBetweenStops(stop_a, stop_b);
-	}
-
-	double curvature = real_length / geo_length;
-	return { n_stops, n_unique_stops, real_length, curvature };
+	return routes_info_.at(bus);
 }
 
 const sv_set& TransportCatalogue::GetStopToBuses(string_view stop_name)
