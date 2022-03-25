@@ -90,4 +90,8 @@ size_t TransportCatalogue::StopsHasher::operator()(const pair<const Stop*, const
 {
 	return pointer_hasher(stops.first) + pointer_hasher(stops.second) * 37;
 }
+size_t TransportCatalogue::BusHasher::operator()(const Bus* bus) const
+{
+	return pointer_hasher(bus);
+}
 } //transport

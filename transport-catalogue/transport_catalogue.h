@@ -54,6 +54,11 @@ private:
 		size_t operator() (const std::pair<const Stop*, const Stop*>& stops) const;
 		std::hash<const void*> pointer_hasher;
 	};
+	struct BusHasher
+	{
+		size_t operator() (const Bus* bus) const;
+		std::hash<const void*> pointer_hasher;
+	};
 
 	std::deque<Stop>									stops_;
 	std::deque<Bus>										buses_;
