@@ -31,7 +31,7 @@ const transport::sv_set* RequestHandler::GetBusesByStop(std::string_view stop_na
 	return buses;
 }
 
-svg::Document RequestHandler::RenderMap(transport::sv_set valid_buses) const
+svg::Document RequestHandler::RenderMap(const transport::sv_set& valid_buses) const
 {
 	transport::sv_set valid_stops;
 	vector<geo::Coordinates> stops_coordinates;
@@ -63,15 +63,38 @@ svg::Document RequestHandler::RenderMap(transport::sv_set valid_buses) const
 			bus_to_points[bus_name].push_back(sphere_projector(stop->coordinates));
 		}
 	}
-	
+
 	vector<unique_ptr<svg::Drawable>> picture;
-	// рисуем линии маршрутов
+	
+	RenderRouteLines(picture, valid_buses, bus_to_points, bus_to_color, render_settings);
+	RenderRouteNames(picture, valid_buses, bus_to_color, render_settings, sphere_projector);
+	RenderStops(picture, valid_stops, render_settings, sphere_projector);
+	RenderStopsNames(picture, valid_stops, render_settings, sphere_projector);
+
+	svg::Document doc;
+	renderer::DrawMap(picture, doc);
+	return doc;
+}
+
+void RequestHandler::RenderRouteLines(vector<unique_ptr<svg::Drawable>>& picture,
+	const transport::sv_set& valid_buses,
+	const unordered_map<string_view, vector<svg::Point>>& bus_to_points,
+	const unordered_map<string_view, svg::Color>& bus_to_color,
+	const RenderSettings& render_settings) const
+{
 	for (string_view bus_name : valid_buses)
 	{
-		picture.emplace_back(make_unique<RoutePolyline>(bus_to_points[bus_name],
-			bus_to_color[bus_name], render_settings.line_width));
+		picture.emplace_back(make_unique<RoutePolyline>(bus_to_points.at(bus_name),
+			bus_to_color.at(bus_name), render_settings.line_width));
 	}
-	// рисуем названия маршрутов
+}
+
+void RequestHandler::RenderRouteNames(vector<unique_ptr<svg::Drawable>>& picture,
+	const transport::sv_set& valid_buses,
+	const unordered_map<string_view, svg::Color>& bus_to_color,
+	const RenderSettings& render_settings,
+	const SphereProjector& sphere_projector) const
+{
 	for (string_view bus_name : valid_buses)
 	{
 		const domain::Bus* bus = db_.SearchBus(bus_name);
@@ -79,7 +102,7 @@ svg::Document RequestHandler::RenderMap(transport::sv_set valid_buses) const
 		svg::Point first_stop_point = sphere_projector(first_stop->coordinates);
 		picture.emplace_back(make_unique<RouteName>(first_stop_point, render_settings.bus_label_offset,
 			render_settings.bus_label_font_size, string{ bus_name }, render_settings.underlayer_color,
-			render_settings.underlayer_width, bus_to_color[bus_name]));
+			render_settings.underlayer_width, bus_to_color.at(bus_name)));
 		if (!bus->is_round)
 		{
 			int last_stop_index = bus->stops.size() / 2;
@@ -89,25 +112,33 @@ svg::Document RequestHandler::RenderMap(transport::sv_set valid_buses) const
 				svg::Point last_stop_point = sphere_projector(last_stop->coordinates);
 				picture.emplace_back(make_unique<RouteName>(last_stop_point, render_settings.bus_label_offset,
 					render_settings.bus_label_font_size, string{ bus_name }, render_settings.underlayer_color,
-					render_settings.underlayer_width, bus_to_color[bus_name]));
+					render_settings.underlayer_width, bus_to_color.at(bus_name)));
 			}
 		}
 	}
-	// рисуем остановки
+}
+
+void RequestHandler::RenderStops(vector<unique_ptr<svg::Drawable>>& picture,
+	const transport::sv_set& valid_stops,
+	const RenderSettings& render_settings,
+	const SphereProjector& sphere_projector) const
+{
 	for (string_view stop_name : valid_stops)
 	{
 		picture.emplace_back(make_unique<StopCircle>(sphere_projector(db_.SearchStop(stop_name)->coordinates),
 			render_settings.stop_radius));
 	}
-	// рисуем названия остановок
+}
+
+void RequestHandler::RenderStopsNames(vector<unique_ptr<svg::Drawable>>& picture,
+	const transport::sv_set& valid_stops,
+	const RenderSettings& render_settings,
+	const SphereProjector& sphere_projector) const
+{
 	for (string_view stop_name : valid_stops)
 	{
 		picture.emplace_back(make_unique<StopName>(sphere_projector(db_.SearchStop(stop_name)->coordinates),
 			render_settings.stop_label_offset, render_settings.stop_label_font_size, string{ stop_name },
 			render_settings.underlayer_color, render_settings.underlayer_width));
 	}
-
-	svg::Document doc;
-	renderer::DrawMap(picture, doc);
-	return doc;
 }
