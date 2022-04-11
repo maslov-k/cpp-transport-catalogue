@@ -1,14 +1,18 @@
 #include "transport_catalogue.h"
-#include "input_reader.h"
-#include "stat_reader.h"
+#include "json_reader.h"
+#include "svg.h"
 
 #include <iostream>
 
 using namespace std;
+using namespace std::literals;
+using namespace transport;
 
 int main()
 {
-	transport::TransportCatalogue tc;
-	transport::query::input::ReadCatalogue(cin, tc);
-	transport::query::stat::Process(cin, cout, tc);
+	TransportCatalogue tc;
+	json_reader::Reader reader(tc);
+	reader.ReadJSON(cin);
+	reader.ParseRequests();
+	reader.GetResponses(cout);
 }

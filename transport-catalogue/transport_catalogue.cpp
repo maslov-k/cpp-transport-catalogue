@@ -1,18 +1,19 @@
 #include "transport_catalogue.h"
-#include "geo.h"
+
 #include <algorithm>
 
 using namespace std;
+using namespace transport;
+using namespace domain;
+using namespace geo;
 
-namespace transport
+void TransportCatalogue::AddBus(const string& name, vector<const Stop*> stops, const unordered_set<string_view>& unique_stops, bool is_round)
 {
-void TransportCatalogue::AddBus(const string& name, vector<const Stop*> stops, const unordered_set<string_view>& unique_stops)
-{
-	buses_.push_back({ name, move(stops), unique_stops});
+	buses_.push_back({ name, move(stops), unique_stops, is_round});
 	Bus* bus = &buses_.back();
 	for (string_view stop_name : bus->unique_stops)
 	{
-		stop_to_buses_[stop_name].insert(bus->name);
+		stop_to_buses_[SearchStop(stop_name)].insert(bus->name);
 	}
 	name_to_bus_[bus->name] = bus;
 
@@ -24,16 +25,16 @@ void TransportCatalogue::AddBus(const string& name, vector<const Stop*> stops, c
 	{
 		const Stop* stop_a = *it;
 		const Stop* stop_b = *next(it);
-		geo_length += geo::ComputeDistance(stop_a->coordinates, stop_b->coordinates);
+		geo_length += ComputeDistance(stop_a->coordinates, stop_b->coordinates);
 		real_length += GetDistanceBetweenStops(stop_a, stop_b);
 	}
 	double curvature = real_length / geo_length;
 	routes_info_[bus] = { n_stops, n_unique_stops, real_length, curvature };
 }
 
-void TransportCatalogue::AddStop(const string& name, geo::Coordinates coordinates)
+void TransportCatalogue::AddStop(const string& name, Coordinates coordinates)
 {
-	stops_.push_back({ name, move(coordinates) });
+	stops_.push_back({ name, coordinates });
 	Stop* stop = &stops_.back();
 	name_to_stop_[stop->name] = stop;
 }
@@ -63,31 +64,29 @@ RouteInfo TransportCatalogue::GetRouteInfo(const Bus* bus) const
 	return routes_info_.at(bus);
 }
 
-const sv_set& TransportCatalogue::GetStopToBuses(string_view stop_name)
+const sv_set* TransportCatalogue::GetStopToBuses(const Stop* stop) const
 {
-	return stop_to_buses_[stop_name];
+	if (!stop_to_buses_.count(stop))
+	{
+		return nullptr;
+	}
+	return &stop_to_buses_.at(stop);
 }
 
 void TransportCatalogue::SetDistanceBetweenStops(const Stop* stop_a, const Stop* stop_b, int distance)
 {
-	distances_between_stops_[{stop_a, stop_b}] = distance;
+	distances_btw_stops_[{stop_a, stop_b}] = distance;
 }
 
 int TransportCatalogue::GetDistanceBetweenStops(const Stop* stop_a, const Stop* stop_b) const
 {
-	if (distances_between_stops_.count({ stop_a, stop_b }))
+	if (distances_btw_stops_.count({ stop_a, stop_b }))
 	{
-		return distances_between_stops_.at({ stop_a, stop_b });
+		return distances_btw_stops_.at({ stop_a, stop_b });
 	}
-	else if (distances_between_stops_.count({ stop_b, stop_a }))
+	else if (distances_btw_stops_.count({ stop_b, stop_a }))
 	{
-		return distances_between_stops_.at({ stop_b, stop_a });
+		return distances_btw_stops_.at({ stop_b, stop_a });
 	}
 	return 0;
 }
-
-size_t TransportCatalogue::StopsHasher::operator()(const pair<const Stop*, const Stop*>& stops) const
-{
-	return pointer_hasher(stops.first) + pointer_hasher(stops.second) * 37;
-}
-} //transport
