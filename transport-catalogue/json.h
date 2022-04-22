@@ -14,20 +14,17 @@ using Dict = std::map<std::string, Node>;
 using Array = std::vector<Node>;
 using NodeJSON = std::variant<std::nullptr_t, Array, Dict, bool, int, double, std::string>;
 
-// Эта ошибка должна выбрасываться при ошибках парсинга JSON
 class ParsingError : public std::runtime_error
 {
 public:
 	using runtime_error::runtime_error;
 };
 
-class Node
+class Node : private std::variant<std::nullptr_t, Array, Dict, bool, int, double, std::string>
 {
 public:
-	explicit Node() = default;
-
-	template <typename Type>
-	Node(Type value);
+	using variant::variant;
+	using Value = variant;
 
 	bool operator==(const Node& rhs) const;
 	bool operator!=(const Node& rhs) const;
@@ -48,10 +45,8 @@ public:
 	bool IsPureDouble() const;
 	bool IsString() const;
 
-	NodeJSON GetNode() const;
-
-private:
-	NodeJSON node_json_;
+	const Value& GetValue() const;
+	Value& GetValue();
 };
 
 class Document
@@ -85,12 +80,6 @@ struct NodePrinter
 
 Document Load(std::istream& input);
 
-void Print(const Document& doc, std::ostream& output, int cur_indent = 0);
-
-template<typename Type>
-Node::Node(Type value)
-	: node_json_(std::move(value))
-{
-}
+void Print(const Document& doc, std::ostream& output);
 
 }  // namespace json

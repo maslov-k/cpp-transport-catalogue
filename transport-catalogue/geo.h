@@ -4,6 +4,7 @@
 
 namespace geo
 {
+
 struct Coordinates
 {
 	double lat;
@@ -13,4 +14,5 @@ struct Coordinates
 };
 
 double ComputeDistance(Coordinates from, Coordinates to);
+
 } // namespace geo

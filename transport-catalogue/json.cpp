@@ -84,7 +84,7 @@ Node LoadNumber(std::istream& input)
 			// Сначала пробуем преобразовать строку в int
 			try
 			{
-				number =  stoi(parsed_num);
+				number = stoi(parsed_num);
 			}
 			catch (...)
 			{
@@ -96,7 +96,7 @@ Node LoadNumber(std::istream& input)
 		{
 			number = stod(parsed_num);
 		}
-		
+
 	}
 	catch (...)
 	{
@@ -280,7 +280,7 @@ Node LoadNode(istream& input)
 
 bool Node::operator==(const Node& rhs) const
 {
-	return this->node_json_ == rhs.node_json_;
+	return GetValue() == rhs.GetValue();
 }
 
 bool Node::operator!=(const Node& rhs) const
@@ -290,127 +290,111 @@ bool Node::operator!=(const Node& rhs) const
 
 const Array& Node::AsArray() const
 {
-	if (IsArray())
+	if (!IsArray())
 	{
-		return get<Array>(node_json_);
+		throw logic_error("Not an array"s);
 	}
-	else
-	{
-		throw logic_error("wrong type"s);
-	}
+	return get<Array>(*this);
 }
 
 const Dict& Node::AsMap() const
 {
-	if (IsMap())
+	if (!IsMap())
 	{
-		return get<Dict>(node_json_);
+		throw logic_error("Not a map"s);
+
 	}
-	else
-	{
-		throw logic_error("wrong type"s);
-	}
+	return get<Dict>(*this);
 }
 
 bool Node::AsBool() const
 {
-	if (IsBool())
+	if (!IsBool())
 	{
-		return get<bool>(node_json_);
+		throw logic_error("Not a bool"s);
 	}
-	else
-	{
-		throw logic_error("wrong type"s);
-	}
+	return get<bool>(*this);
 }
 
 int Node::AsInt() const
 {
-	if (IsInt())
+	if (!IsInt())
 	{
-		return get<int>(node_json_);
+		throw logic_error("Not an int"s);
 	}
-	else
-	{
-		throw logic_error("wrong type"s);
-	}
+	return get<int>(*this);
 }
 
 double Node::AsDouble() const
 {
-	if (IsInt())
+	if (!IsDouble())
 	{
-		return get<int>(node_json_);
+		throw logic_error("not an double"s);
 	}
-	else if (IsDouble())
-	{
-		return get<double>(node_json_);
-	}
-	else
-	{
-		throw logic_error("wrong type"s);
-	}
+	return IsInt() ? get<int>(*this) : get<double>(*this);
 }
 
 const string& Node::AsString() const
 {
-	if (IsString())
+	if (!IsString())
 	{
-		return get<string>(node_json_);
+		throw logic_error("not a string"s);
 	}
-	else
-	{
-		throw logic_error("wrong type"s);
-	}
+	return get<string>(*this);
 }
 
 bool Node::IsNull() const
 {
-	return holds_alternative<nullptr_t>(node_json_);
+	return holds_alternative<nullptr_t>(*this);
 }
 
 bool Node::IsArray() const
 {
-	return holds_alternative<Array>(node_json_);
+	return holds_alternative<Array>(*this);
 }
 
 bool Node::IsMap() const
 {
-	return holds_alternative<Dict>(node_json_);
+	return holds_alternative<Dict>(*this);
 }
 
 bool Node::IsBool() const
 {
-	return holds_alternative<bool>(node_json_);
+	return holds_alternative<bool>(*this);
 }
 
 bool Node::IsInt() const
 {
-	return holds_alternative<int>(node_json_);
+	return holds_alternative<int>(*this);
 }
 
 bool Node::IsDouble() const
 {
-	return holds_alternative<double>(node_json_) || holds_alternative<int>(node_json_);
+	return holds_alternative<double>(*this) || holds_alternative<int>(*this);
 }
 
 bool Node::IsPureDouble() const
 {
-	return holds_alternative<double>(node_json_);
+	return holds_alternative<double>(*this);
 }
 
 bool Node::IsString() const
 {
-	if (holds_alternative<string>(node_json_))
+	if (holds_alternative<string>(*this))
 	{
 		return true;
 	}
 	return false;
 }
 
-NodeJSON Node::GetNode() const
+const Node::Value& Node::GetValue() const
 {
-	return node_json_;
+	return *this;
+}
+
+Node::Value& Node::GetValue()
+{
+	return *this;
 }
 
 Document::Document(Node root)
@@ -453,14 +437,14 @@ void NodePrinter::operator()(Array array) const
 		{
 			out << ","s << "\n"s << string(cur_indent + indent_value, ' ');
 		}
-		visit(NodePrinter{ out, cur_indent + indent_value }, element.GetNode());
+		visit(NodePrinter{ out, cur_indent + indent_value }, element.GetValue());
 	}
 	out << "\n"s << string(cur_indent, ' ') << "]"s;
 }
 
 void NodePrinter::operator()(Dict dict) const
 {
-	out << string(cur_indent, ' ') << "{"s;
+	out << "{"s;
 	bool is_first = true;
 	for (const auto& [key, value] : dict)
 	{
@@ -473,7 +457,7 @@ void NodePrinter::operator()(Dict dict) const
 		{
 			out << ","s << "\n"s << string(cur_indent + indent_value, ' ') << "\""s << key << "\": ";
 		}
-		visit(NodePrinter{ out, cur_indent + indent_value }, value.GetNode());
+		visit(NodePrinter{ out, cur_indent + indent_value }, value.GetValue());
 	}
 	out << "\n"s << string(cur_indent, ' ') << "}"s;
 }
@@ -527,10 +511,10 @@ Document Load(istream& input)
 	return Document{ LoadNode(input) };
 }
 
-void Print(const Document& doc, std::ostream& output, int cur_indent)
+void Print(const Document& doc, std::ostream& output)
 {
-	NodeJSON node_json = doc.GetRoot().GetNode();
-	visit(NodePrinter{ output, cur_indent }, node_json);
+	NodeJSON node_json = doc.GetRoot().GetValue();
+	visit(NodePrinter{ output }, node_json);
 }
 
 }  // namespace json

@@ -1,4 +1,5 @@
 #include "json_reader.h"
+#include "json_builder.h"
 
 #include <sstream>
 
@@ -96,45 +97,40 @@ pair<vector<const Stop*>, unordered_set<string_view>> Reader::GetStops(const Arr
 
 void Reader::ExecuteStatRequests(const Node& stat_requests, const RequestHandler& handler, ostream& output)
 {
-	output << "[\n"s;
-	bool is_first = true;
+	Builder builder;
+	builder.StartArray();
 	for (const Node& query : stat_requests.AsArray())
 	{
-		if (is_first)
-		{
-			is_first = false;
-		}
-		else
-		{
-			output << ",\n";
-		}
 		const Dict& query_dict = query.AsMap();
 		if (query_dict.at("type"s).AsString() == "Stop"s)
 		{
-			ExecuteStopRequest(query_dict, handler, output);
+			ExecuteStopRequest(query_dict, handler, builder);
 		}
 		else if (query_dict.at("type"s).AsString() == "Bus"s)
 		{
-			ExecuteBusRequest(query_dict, handler, output);
+			ExecuteBusRequest(query_dict, handler, builder);
 		}
 		else if (query_dict.at("type"s).AsString() == "Map"s)
 		{
-			ExecuteMapRequest(query_dict, handler, output);
+			ExecuteMapRequest(query_dict, handler, builder);
 		}
 	}
-	output << "\n]"s;
+	builder.EndArray();
+	Print(Document{ builder.Build() }, output);
 }
 
-void Reader::ExecuteStopRequest(const Dict& query_dict, const RequestHandler& handler, ostream& output)
+void Reader::ExecuteStopRequest(const Dict& query_dict, const RequestHandler& handler, Builder& builder)
 {
 	Array buses_array;
 	int id = query_dict.at("id"s).AsInt();
 	const string& stop_name = query_dict.at("name"s).AsString();
 	const sv_set* buses = handler.GetBusesByStop(stop_name);
-	int current_indent = 4;
 	if (!tc_.SearchStop(stop_name))
 	{
-		Print(Document{ Dict{ {"request_id"s, id}, {"error_message"s , "not found"s} } }, output, current_indent);
+		builder.StartDict()
+					.Key("request_id"s).Value(id)
+					.Key("error_message"s).Value("not found"s)
+				.EndDict();
 	}
 	else
 	{
@@ -145,39 +141,47 @@ void Reader::ExecuteStopRequest(const Dict& query_dict, const RequestHandler& ha
 				buses_array.emplace_back(string{ bus_name });
 			}
 		}
-		Print(Document{ Dict{ {"buses"s, buses_array}, {"request_id"s, id} } }, output, current_indent);
+		builder.StartDict()
+					.Key("buses"s).Value(buses_array)
+					.Key("request_id"s).Value(id)
+				.EndDict();
 	}
 }
 
-void Reader::ExecuteBusRequest(const Dict& query_dict, const RequestHandler& handler, ostream& output)
+void Reader::ExecuteBusRequest(const Dict& query_dict, const RequestHandler& handler, Builder& builder)
 {
 	int id = query_dict.at("id"s).AsInt();
 	const string& bus_name = query_dict.at("name"s).AsString();
 	optional<RouteInfo> route_info = handler.GetRouteInfo(bus_name);
-	int current_indent = 4;
 	if (!route_info)
 	{
-		Print(Document{ Dict{ {"request_id"s, id}, {"error_message"s , "not found"s} } }, output, current_indent);
+		builder.StartDict()
+					.Key("request_id"s).Value(id)
+					.Key("error_message"s).Value("not found"s)
+				.EndDict();
 	}
 	else
 	{
-		Print(Document{ Dict{
-			{"curvature"s, route_info->curvature},
-			{"request_id"s, id},
-			{"route_length"s, route_info->real_length},
-			{"stop_count"s, route_info->n_stops},
-			{"unique_stop_count"s, route_info->n_unique_stops} } }, output, current_indent);
+		builder.StartDict()
+					.Key("curvature"s).Value(route_info->curvature)
+					.Key("request_id"s).Value(id)
+					.Key("route_length"s).Value(route_info->real_length)
+					.Key("stop_count"s).Value(route_info->n_stops)
+					.Key("unique_stop_count"s).Value(route_info->n_unique_stops)
+				.EndDict();
 	}
 }
 
-void Reader::ExecuteMapRequest(const Dict& query_dict, const RequestHandler& handler, ostream& output)
+void Reader::ExecuteMapRequest(const Dict& query_dict, const RequestHandler& handler, Builder& builder)
 {
 	int id = query_dict.at("id"s).AsInt();
 	svg::Document svg_document = handler.RenderMap(valid_buses_);
 	ostringstream map_out;
 	svg_document.Render(map_out);
-	int current_indent = 4;
-	Print(Document{ Dict{ {"map"s, map_out.str()}, {"request_id"s , id} } }, output, current_indent);
+	builder.StartDict()
+				.Key("map"s).Value(map_out.str())
+				.Key("request_id"s).Value(id)
+			.EndDict();
 }
 
 RenderSettings Reader::ParseRenderSettings()

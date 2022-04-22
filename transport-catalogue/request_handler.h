@@ -11,13 +11,10 @@ namespace transport::request_handler
 class RequestHandler
 {
 public:
-	// MapRenderer понадобится в следующей части итогового проекта
 	RequestHandler(const TransportCatalogue& db, const renderer::MapRenderer& renderer);
 
-	// Возвращает информацию о маршруте (запрос Bus)
 	std::optional<domain::RouteInfo> GetRouteInfo(std::string_view bus_name) const;
 
-	// Возвращает маршруты, проходящие через остановку
 	const transport::sv_set* GetBusesByStop(std::string_view stop_name) const;
 
 	svg::Document RenderMap(const transport::sv_set& valid_buses) const;

@@ -2,6 +2,7 @@
 
 #include "transport_catalogue.h"
 #include "json.h"
+#include "json_builder.h"
 #include "request_handler.h"
 #include "map_renderer.h"
 
@@ -32,11 +33,11 @@ private:
 	void ExecuteStatRequests(const json::Node& stat_requests,
 		const transport::request_handler::RequestHandler& handler, std::ostream& output);
 	void ExecuteStopRequest(const json::Dict& query_dict,
-		const transport::request_handler::RequestHandler& handler, std::ostream& output);
+		const transport::request_handler::RequestHandler& handler, json::Builder& builder);
 	void ExecuteBusRequest(const json::Dict& query_dict,
-		const transport::request_handler::RequestHandler& handler, std::ostream& output);
+		const transport::request_handler::RequestHandler& handler, json::Builder& builder);
 	void ExecuteMapRequest(const json::Dict& query_dict,
-		const transport::request_handler::RequestHandler& handler, std::ostream& output);
+		const transport::request_handler::RequestHandler& handler, json::Builder& builder);
 	renderer::RenderSettings ParseRenderSettings();
 	svg::Color GetColor(json::Node color_node) const;
 
