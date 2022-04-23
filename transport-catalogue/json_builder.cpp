@@ -13,7 +13,6 @@ KeyItemContext Builder::Key(string key)
 	}
 	Dict& dict = get<Dict>(nodes_stack_.back()->GetValue());
 	nodes_stack_.push_back(&dict[move(key)]);
-
 	return *this;
 }
 
@@ -21,21 +20,20 @@ BaseContext Builder::Value(Node value)
 {
 	if (nodes_stack_.empty())
 	{
-		nodes_stack_.emplace_back(new Node(value));
+		root_ = Node(value);
+		nodes_stack_.push_back(&root_);
 		return *this;
 	}
 	if (!nodes_stack_.back()->IsArray() && !nodes_stack_.back()->IsNull())
 	{
 		throw logic_error("Value error"s);
 	}
-	// Если последний элемент в стеке - указатель на значение словаря, кладём туда value
 	if (nodes_stack_.back()->IsNull())
 	{
 		*nodes_stack_.back() = move(value);
 		nodes_stack_.pop_back();
 		return static_cast<ValueContext>(*this);
 	}
-	// Если последний элемент в стеке - массив, добавляем к нему value
 	else if (nodes_stack_.back()->IsArray())
 	{
 		Array& arr = get<Array>(nodes_stack_.back()->GetValue());
@@ -51,7 +49,21 @@ DictItemContext Builder::StartDict()
 	{
 		throw logic_error("StartDict error"s);
 	}
-	nodes_stack_.emplace_back(new Node(Dict()));
+	if (nodes_stack_.empty())
+	{
+		root_ = Node(Dict());
+		nodes_stack_.push_back(&root_);
+	}
+	else if (nodes_stack_.back()->IsArray())
+	{
+		Array& arr = get<Array>(nodes_stack_.back()->GetValue());
+		arr.emplace_back(Node(Dict()));
+		nodes_stack_.push_back(&arr.back());
+	}
+	else if (nodes_stack_.back()->IsNull())
+	{
+		*nodes_stack_.back() = Node(Dict());
+	}
 	return *this;
 }
 
@@ -61,24 +73,7 @@ BaseContext Builder::EndDict()
 	{
 		throw logic_error("EndDict error"s);
 	}
-	// Закрываем открытый словарь
-	if (nodes_stack_.size() > 1)
-	{
-		Dict& dict = get<Dict>(nodes_stack_.back()->GetValue());
-		nodes_stack_.pop_back();
-		// Если до словаря незакрытый массив, добавляем массив в словарь
-		if (nodes_stack_.back()->IsArray())
-		{
-			Array& arr = get<Array>(nodes_stack_.back()->GetValue());
-			arr.push_back(move(dict));
-		}
-		// Если последний элемент в стеке - указатель на значение словаря, кладём туда Dict
-		else if (nodes_stack_.back()->IsNull())
-		{
-			*nodes_stack_.back() = move(dict);
-			nodes_stack_.pop_back();
-		}
-	}
+	nodes_stack_.pop_back();
 	return *this;
 }
 
@@ -88,7 +83,21 @@ ArrayItemContext Builder::StartArray()
 	{
 		throw logic_error("StartArray error"s);
 	}
-	nodes_stack_.emplace_back(new Node(Array()));
+	if (nodes_stack_.empty())
+	{
+		root_ = Node(Array());
+		nodes_stack_.push_back(&root_);
+	}
+	else if (nodes_stack_.back()->IsArray())
+	{
+		Array& arr = get<Array>(nodes_stack_.back()->GetValue());
+		arr.emplace_back(Node(Array()));
+		nodes_stack_.push_back(&arr.back());
+	}
+	else if (nodes_stack_.back()->IsNull())
+	{
+		*nodes_stack_.back() = Node(Array());
+	}
 	return *this;
 }
 
@@ -98,36 +107,17 @@ BaseContext Builder::EndArray()
 	{
 		throw logic_error("EndArray error"s);
 	}
-	// Закрываем открытый массив
-	if (nodes_stack_.size() > 1)
-	{
-		Array& arr = get<Array>(nodes_stack_.back()->GetValue());
-		nodes_stack_.pop_back();
-		// Если до массива незакрытый массив, добавляем массив в массив
-		if (nodes_stack_.back()->IsArray())
-		{
-			Array& arr_ext = get<Array>(nodes_stack_.back()->GetValue());
-			arr_ext.push_back(move(arr));
-			return *this;
-		}
-		// Если последний элемент в стеке - указатель на значение словаря, кладём туда Array
-		else if (nodes_stack_.back()->IsNull())
-		{
-			*nodes_stack_.back() = move(arr);
-		}
-		nodes_stack_.pop_back();
-	}
+	nodes_stack_.pop_back();
 	return *this;
 }
 
 Node Builder::Build()
 {
-	if (nodes_stack_.size() != 1)
+	if ((nodes_stack_.empty() && root_.IsNull()) ||
+		(!nodes_stack_.empty() && nodes_stack_.back() != &root_))
 	{
 		throw logic_error("bilding error"s);
 	}
-	root_ = move(*nodes_stack_.back());
-	nodes_stack_.pop_back();
 	return root_;
 }
 
