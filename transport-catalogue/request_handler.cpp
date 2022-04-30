@@ -52,11 +52,7 @@ svg::Document RequestHandler::RenderMap(const transport::sv_set& valid_buses) co
 	size_t colors_count = render_settings.color_palette.size();
 	for (string_view bus_name : valid_buses)
 	{
-		if (color_index >= colors_count)
-		{
-			color_index = 0;
-		}
-		bus_to_color[bus_name] = render_settings.color_palette[color_index];
+		bus_to_color[bus_name] = render_settings.color_palette[color_index % colors_count];
 		++color_index;
 		for (const domain::Stop* stop : db_.SearchBus(bus_name)->stops)
 		{
