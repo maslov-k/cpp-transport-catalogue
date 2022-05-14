@@ -6,7 +6,7 @@
 * "base_requests": запросы на формирование базы.
 * "stat_requests": запросы на вывод информации о маршрутах и остановках.
 
-Пример запросов: https://pastebin.com/aaipBNf7
+Пример запросов: https://pastebin.com/7yntqpu8
 
 ## Требования:
 C++17 (STL).
