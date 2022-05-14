@@ -22,7 +22,7 @@ struct Bus
 	bool is_round;
 };
 
-struct RouteInfo
+struct BusInfo
 {
 	int n_stops;
 	int n_unique_stops;

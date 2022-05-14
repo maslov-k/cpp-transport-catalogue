@@ -29,7 +29,7 @@ void TransportCatalogue::AddBus(const string& name, vector<const Stop*> stops, c
 		real_length += GetDistanceBetweenStops(stop_a, stop_b);
 	}
 	double curvature = real_length / geo_length;
-	routes_info_[bus] = { n_stops, n_unique_stops, real_length, curvature };
+	buses_info_[bus] = { n_stops, n_unique_stops, real_length, curvature };
 }
 
 void TransportCatalogue::AddStop(const string& name, Coordinates coordinates)
@@ -59,9 +59,9 @@ const Stop* TransportCatalogue::SearchStop(string_view stop_name) const
 	return search->second;
 }
 
-RouteInfo TransportCatalogue::GetRouteInfo(const Bus* bus) const
+BusInfo TransportCatalogue::GetBusInfo(const Bus* bus) const
 {
-	return routes_info_.at(bus);
+	return buses_info_.at(bus);
 }
 
 const sv_set* TransportCatalogue::GetStopToBuses(const Stop* stop) const

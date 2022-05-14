@@ -1,5 +1,7 @@
 #include "json_reader.h"
 #include "json_builder.h"
+#include "graph.h"
+#include "transport_router.h"
 
 #include <sstream>
 
@@ -9,6 +11,8 @@ using namespace transport::domain;
 using namespace transport::request_handler;
 using namespace renderer;
 using namespace json;
+using namespace graph;
+using namespace router;
 
 void Reader::ReadJSON(istream& input)
 {
@@ -48,9 +52,19 @@ void Reader::ParseRequests()
 
 void Reader::GetResponses(ostream& output)
 {
+	for (string_view bus_name : valid_buses_)
+	{
+		for (const domain::Stop* stop : tc_.SearchBus(bus_name)->stops)
+		{
+			valid_stops_.insert(stop->name);
+		}
+	}
+	router::TransportRouter transport_router(tc_, valid_buses_, valid_stops_, ParseRoutingSettings());
+	transport_router.BuildGraph();
+
 	RenderSettings render_settings = ParseRenderSettings();
 	MapRenderer renderer(render_settings);
-	RequestHandler handler(tc_, renderer);
+	RequestHandler handler(tc_, renderer, transport_router);
 	ExecuteStatRequests(requests_.at("stat_requests"s), handler, output);
 }
 
@@ -114,6 +128,10 @@ void Reader::ExecuteStatRequests(const Node& stat_requests, const RequestHandler
 		{
 			ExecuteMapRequest(query_dict, handler, builder);
 		}
+		else if (query_dict.at("type"s).AsString() == "Route"s)
+		{
+			ExecuteRouteRequest(query_dict, handler, builder);
+		}
 	}
 	builder.EndArray();
 	Print(Document{ builder.Build() }, output);
@@ -152,8 +170,8 @@ void Reader::ExecuteBusRequest(const Dict& query_dict, const RequestHandler& han
 {
 	int id = query_dict.at("id"s).AsInt();
 	const string& bus_name = query_dict.at("name"s).AsString();
-	optional<RouteInfo> route_info = handler.GetRouteInfo(bus_name);
-	if (!route_info)
+	optional<BusInfo> bus_info = handler.GetBusInfo(bus_name);
+	if (!bus_info)
 	{
 		builder.StartDict()
 					.Key("request_id"s).Value(id)
@@ -163,11 +181,11 @@ void Reader::ExecuteBusRequest(const Dict& query_dict, const RequestHandler& han
 	else
 	{
 		builder.StartDict()
-					.Key("curvature"s).Value(route_info->curvature)
+					.Key("curvature"s).Value(bus_info->curvature)
 					.Key("request_id"s).Value(id)
-					.Key("route_length"s).Value(route_info->real_length)
-					.Key("stop_count"s).Value(route_info->n_stops)
-					.Key("unique_stop_count"s).Value(route_info->n_unique_stops)
+					.Key("route_length"s).Value(bus_info->real_length)
+					.Key("stop_count"s).Value(bus_info->n_stops)
+					.Key("unique_stop_count"s).Value(bus_info->n_unique_stops)
 				.EndDict();
 	}
 }
@@ -175,7 +193,7 @@ void Reader::ExecuteBusRequest(const Dict& query_dict, const RequestHandler& han
 void Reader::ExecuteMapRequest(const Dict& query_dict, const RequestHandler& handler, Builder& builder)
 {
 	int id = query_dict.at("id"s).AsInt();
-	svg::Document svg_document = handler.RenderMap(valid_buses_);
+	svg::Document svg_document = handler.RenderMap(valid_buses_, valid_stops_);
 	ostringstream map_out;
 	svg_document.Render(map_out);
 	builder.StartDict()
@@ -184,7 +202,46 @@ void Reader::ExecuteMapRequest(const Dict& query_dict, const RequestHandler& han
 			.EndDict();
 }
 
-RenderSettings Reader::ParseRenderSettings()
+void Reader::ExecuteRouteRequest(const Dict& query_dict, const RequestHandler& handler, Builder& builder)
+{
+	int id = query_dict.at("id"s).AsInt();
+	const string& stop_name_from = query_dict.at("from"s).AsString();
+	const string& stop_name_to = query_dict.at("to"s).AsString();
+	optional<RouteData> route_data = handler.GetRouteData(stop_name_from, stop_name_to);
+	if (!route_data)
+	{
+		builder.StartDict()
+					.Key("request_id"s).Value(id)
+					.Key("error_message"s).Value("not found"s)
+				.EndDict();
+	}
+	else
+	{
+		builder.StartDict()
+			.Key("request_id"s).Value(id)
+			.Key("total_time"s).Value(route_data->time)
+			.Key("items"s).StartArray();
+		for (EdgeInfo edge_info : route_data->edges_info)
+		{
+			builder.StartDict();
+			if (edge_info.type == EdgeType::WAIT)
+			{
+				builder.Key("type"s).Value("Wait"s)
+					   .Key("stop_name"s).Value(string{ edge_info.stop_name });
+			}
+			else if (edge_info.type == EdgeType::BUS)
+			{
+				builder.Key("type"s).Value("Bus"s)
+					   .Key("bus"s).Value(string{ edge_info.bus_name })
+					   .Key("span_count"s).Value(edge_info.span_count);
+			}
+			builder.Key("time"s).Value(edge_info.time).EndDict();
+		}
+		builder.EndArray().EndDict();
+	}
+}
+
+RenderSettings Reader::ParseRenderSettings() const
 {
 	if (!requests_.count("render_settings"s))
 	{
@@ -213,6 +270,17 @@ RenderSettings Reader::ParseRenderSettings()
 		render_settings.color_palette.emplace_back(GetColor(color_node));
 	}
 	return render_settings;
+}
+
+RoutingSettings Reader::ParseRoutingSettings() const
+{
+	if (!requests_.count("routing_settings"s))
+	{
+		return RoutingSettings();
+	}
+	const Dict& routing_settings_dict = requests_.at("routing_settings"s).AsMap();
+	return { routing_settings_dict.at("bus_wait_time"s).AsInt(),
+			 routing_settings_dict.at("bus_velocity"s).AsDouble() };
 }
 
 svg::Color Reader::GetColor(json::Node color_node) const

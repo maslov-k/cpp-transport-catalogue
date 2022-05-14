@@ -4,20 +4,21 @@ using namespace std;
 using namespace transport::request_handler;
 using namespace renderer;
 
-RequestHandler::RequestHandler(const transport::TransportCatalogue& db, const renderer::MapRenderer& renderer)
-	:db_(db), renderer_(renderer)
+RequestHandler::RequestHandler(const transport::TransportCatalogue& db, const renderer::MapRenderer& renderer,
+									const router::TransportRouter& router)
+	: db_(db), renderer_(renderer), router_(router)
 {
 }
 
-std::optional<transport::domain::RouteInfo> RequestHandler::GetRouteInfo(std::string_view bus_name) const
+std::optional<transport::domain::BusInfo> RequestHandler::GetBusInfo(std::string_view bus_name) const
 {
 	const domain::Bus* bus = db_.SearchBus(bus_name);
 	if (!bus)
 	{
 		return std::nullopt;
 	}
-	domain::RouteInfo route_info = db_.GetRouteInfo(bus);
-	return route_info;
+	domain::BusInfo bus_info = db_.GetBusInfo(bus);
+	return bus_info;
 }
 
 const transport::sv_set* RequestHandler::GetBusesByStop(std::string_view stop_name) const
@@ -31,19 +32,14 @@ const transport::sv_set* RequestHandler::GetBusesByStop(std::string_view stop_na
 	return buses;
 }
 
-svg::Document RequestHandler::RenderMap(const transport::sv_set& valid_buses) const
+svg::Document RequestHandler::RenderMap(const transport::sv_set& valid_buses, const transport::sv_set& valid_stops) const
 {
-	transport::sv_set valid_stops;
 	vector<geo::Coordinates> stops_coordinates;
 	unordered_map<string_view, svg::Color> bus_to_color;
 	unordered_map<string_view, vector<svg::Point>> bus_to_points;
-	for (string_view bus_name : valid_buses)
+	for (string_view stop_name : valid_stops)
 	{
-		for (const domain::Stop* stop : db_.SearchBus(bus_name)->stops)
-		{
-			valid_stops.insert(stop->name);
-			stops_coordinates.push_back(stop->coordinates);
-		}
+		stops_coordinates.push_back(db_.SearchStop(stop_name)->coordinates);
 	}
 	RenderSettings render_settings = renderer_.GetRenderSettings();
 	SphereProjector sphere_projector(stops_coordinates.begin(), stops_coordinates.end(),
@@ -70,6 +66,11 @@ svg::Document RequestHandler::RenderMap(const transport::sv_set& valid_buses) co
 	svg::Document doc;
 	renderer::DrawMap(picture, doc);
 	return doc;
+}
+
+optional<router::RouteData> RequestHandler::GetRouteData(std::string_view stop_from_name, string_view stop_to_name) const
+{
+	return router_.GetRouteData(stop_from_name, stop_to_name);
 }
 
 void RequestHandler::RenderRouteLines(vector<unique_ptr<svg::Drawable>>& picture,

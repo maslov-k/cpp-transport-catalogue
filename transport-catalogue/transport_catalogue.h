@@ -25,7 +25,7 @@ public:
 	void AddStop(const std::string& name, geo::Coordinates coordinates);
 	const domain::Bus* SearchBus(std::string_view bus_name) const;
 	const domain::Stop* SearchStop(std::string_view stop_name) const;
-	domain::RouteInfo GetRouteInfo(const domain::Bus* bus) const;
+	domain::BusInfo GetBusInfo(const domain::Bus* bus) const;
 	const sv_set* GetStopToBuses(const domain::Stop* stop) const;
 	void SetDistanceBetweenStops(const domain::Stop* stop_a, const domain::Stop* stop_b, int distance);
 	int GetDistanceBetweenStops(const domain::Stop* stop_a, const domain::Stop* stop_b) const;
@@ -37,7 +37,7 @@ private:
 	std::unordered_map<std::string_view, const domain::Stop*>	name_to_stop_;
 	std::unordered_map<const domain::Stop*, sv_set>				stop_to_buses_;
 	Distances_btw_stops											distances_btw_stops_;
-	std::unordered_map<const domain::Bus*, domain::RouteInfo>	routes_info_;
+	std::unordered_map<const domain::Bus*, domain::BusInfo>		buses_info_;
 };
 
 } // namespace transport

@@ -5,6 +5,8 @@
 #include "json_builder.h"
 #include "request_handler.h"
 #include "map_renderer.h"
+#include "router.h"
+#include "transport_router.h"
 
 namespace transport::json_reader
 {
@@ -38,12 +40,16 @@ private:
 		const transport::request_handler::RequestHandler& handler, json::Builder& builder);
 	void ExecuteMapRequest(const json::Dict& query_dict,
 		const transport::request_handler::RequestHandler& handler, json::Builder& builder);
-	renderer::RenderSettings ParseRenderSettings();
+	void ExecuteRouteRequest(const json::Dict& query_dict,
+		const transport::request_handler::RequestHandler& handler, json::Builder& builder);
+	renderer::RenderSettings ParseRenderSettings() const;
+	router::RoutingSettings ParseRoutingSettings() const;
 	svg::Color GetColor(json::Node color_node) const;
 
 	TransportCatalogue& tc_;
 	json::Dict requests_;
 	transport::sv_set valid_buses_;
+	transport::sv_set valid_stops_;
 };
 
 } // namespace transport::json_reader
