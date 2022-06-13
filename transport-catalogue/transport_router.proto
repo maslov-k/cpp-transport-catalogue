@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package router_proto;
+
+import "graph.proto";
+
+message RoutingSettings
+{
+    uint32 bus_wait_time = 1;
+    double bus_velocity = 2;
+}
+
+message EdgeInfo
+{
+    bool type = 1;
+    uint32 stop_index = 2;
+    int32 bus_index = 3;
+    double time = 4;
+    int32 span_count = 5;
+}
+
+message IncidenceList
+{
+    repeated uint32 edge_id = 1;
+}
+
+message Router
+{
+    graph_proto.Graph graph = 1;
+    RoutingSettings routing_settings = 2;
+    repeated EdgeInfo edge_info = 3;
+}

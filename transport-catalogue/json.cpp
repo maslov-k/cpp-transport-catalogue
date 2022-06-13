@@ -18,9 +18,8 @@ Node LoadNumber(std::istream& input)
 
 	string parsed_num;
 
-	// Считывает в parsed_num очередной символ из input
 	auto read_char = [&parsed_num, &input]
-	{
+    {
 		parsed_num += static_cast<char>(input.get());
 		if (!input)
 		{
@@ -28,7 +27,6 @@ Node LoadNumber(std::istream& input)
 		}
 	};
 
-	// Считывает одну или более цифр в parsed_num из input
 	auto read_digits = [&input, read_char]
 	{
 		if (!isdigit(input.peek()))
@@ -45,11 +43,9 @@ Node LoadNumber(std::istream& input)
 	{
 		read_char();
 	}
-	// Парсим целую часть числа
 	if (input.peek() == '0')
 	{
 		read_char();
-		// После 0 в JSON не могут идти другие цифры
 	}
 	else
 	{
@@ -57,7 +53,6 @@ Node LoadNumber(std::istream& input)
 	}
 
 	bool is_int = true;
-	// Парсим дробную часть числа
 	if (input.peek() == '.')
 	{
 		read_char();
@@ -65,7 +60,6 @@ Node LoadNumber(std::istream& input)
 		is_int = false;
 	}
 
-	// Парсим экспоненциальную часть числа
 	if (int ch = input.peek(); ch == 'e' || ch == 'E')
 	{
 		read_char();
@@ -81,15 +75,12 @@ Node LoadNumber(std::istream& input)
 	{
 		if (is_int)
 		{
-			// Сначала пробуем преобразовать строку в int
 			try
 			{
 				number = stoi(parsed_num);
 			}
 			catch (...)
 			{
-				// В случае неудачи, например, при переполнении,
-				// код ниже попробует преобразовать строку в double
 			}
 		}
 		else

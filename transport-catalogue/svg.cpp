@@ -75,7 +75,6 @@ void Object::Render(const RenderContext& context) const
 {
 	context.RenderIndent();
 
-	// Делегируем вывод тега своим подклассам
 	RenderObject(context);
 
 	context.out << std::endl;

@@ -38,3 +38,8 @@
 */Debug
 */Release
 */x64
+
+# Qt
+*/build*
+CMakeLists.txt.user
+

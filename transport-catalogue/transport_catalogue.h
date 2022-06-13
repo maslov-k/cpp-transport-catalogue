@@ -29,15 +29,21 @@ public:
 	const sv_set* GetStopToBuses(const domain::Stop* stop) const;
 	void SetDistanceBetweenStops(const domain::Stop* stop_a, const domain::Stop* stop_b, int distance);
 	int GetDistanceBetweenStops(const domain::Stop* stop_a, const domain::Stop* stop_b) const;
+    const std::deque<domain::Stop>& GetStops() const;
+    const std::deque<domain::Bus>& GetBuses() const;
+    const sv_set& GetValidStops() const;
+    const sv_set& GetValidBuses() const;
 
 private:
-	std::deque<domain::Stop>									stops_;
-	std::deque<domain::Bus>										buses_;
-	std::unordered_map<std::string_view, const domain::Bus*>	name_to_bus_;
-	std::unordered_map<std::string_view, const domain::Stop*>	name_to_stop_;
-	std::unordered_map<const domain::Stop*, sv_set>				stop_to_buses_;
-	Distances_btw_stops											distances_btw_stops_;
-	std::unordered_map<const domain::Bus*, domain::BusInfo>		buses_info_;
+    std::deque<domain::Stop>                                    stops_;
+    std::deque<domain::Bus>                                     buses_;
+    sv_set                                                      valid_stops_;
+    sv_set                                                      valid_buses_;
+    std::unordered_map<std::string_view, const domain::Bus*>    name_to_bus_;
+    std::unordered_map<std::string_view, const domain::Stop*>   name_to_stop_;
+    std::unordered_map<const domain::Stop*, sv_set>             stop_to_buses_;
+    Distances_btw_stops                                         distances_btw_stops_;
+    std::unordered_map<const domain::Bus*, domain::BusInfo>     buses_info_;
 };
 
 } // namespace transport

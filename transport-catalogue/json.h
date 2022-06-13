@@ -17,7 +17,7 @@ using NodeJSON = std::variant<std::nullptr_t, Array, Dict, bool, int, double, st
 class ParsingError : public std::runtime_error
 {
 public:
-	using runtime_error::runtime_error;
+    using runtime_error::runtime_error;
 };
 
 class Node : private std::variant<std::nullptr_t, Array, Dict, bool, int, double, std::string>
@@ -69,7 +69,7 @@ struct NodePrinter
 	int cur_indent = 0;
 	const int indent_value = 4;
 
-	void operator()(nullptr_t) const;
+    void operator()(std::nullptr_t) const;
 	void operator()(Array array) const;
 	void operator()(Dict dict) const;
 	void operator()(bool value) const;

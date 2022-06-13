@@ -16,7 +16,7 @@ bool Coordinates::operator!=(const Coordinates& other) const
 
 double ComputeDistance(Coordinates from, Coordinates to)
 {
-	using namespace std;
+    using namespace std;
 	if (from == to) {
 		return 0;
 	}

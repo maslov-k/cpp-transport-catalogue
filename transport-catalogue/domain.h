@@ -8,6 +8,7 @@
 
 namespace transport::domain
 {
+
 struct Stop
 {
 	std::string name;

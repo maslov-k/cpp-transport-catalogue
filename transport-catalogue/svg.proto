@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package svg_proto;
+
+message ColorRgb
+{
+    int32 red = 1;
+    int32 green = 2;
+    int32 blue = 3;
+}
+
+message ColorRgba
+{
+    int32 red = 1;
+    int32 green = 2;
+    int32 blue = 3;
+    double opacity = 4;
+}
+
+message ColorStr
+{
+    string color = 1;
+}
+
+message Color
+{
+    oneof type
+    {
+        ColorRgb rgb = 1;
+        ColorRgba rgba = 2;
+        ColorStr str = 3;
+    }
+}

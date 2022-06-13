@@ -17,6 +17,15 @@ void TransportCatalogue::AddBus(const string& name, vector<const Stop*> stops, c
 	}
 	name_to_bus_[bus->name] = bus;
 
+    if (!bus->stops.empty())
+    {
+        valid_buses_.insert(bus->name);
+        for (const Stop* stop: bus->stops)
+        {
+            valid_stops_.insert(stop->name);
+        }
+    }
+
 	int n_stops = bus->stops.size();
 	int n_unique_stops = bus->unique_stops.size();
 	double geo_length = 0;
@@ -88,5 +97,25 @@ int TransportCatalogue::GetDistanceBetweenStops(const Stop* stop_a, const Stop* 
 	{
 		return distances_btw_stops_.at({ stop_b, stop_a });
 	}
-	return 0;
+    return 0;
+}
+
+const std::deque<Stop> &TransportCatalogue::GetStops() const
+{
+    return stops_;
+}
+
+const std::deque<Bus> &TransportCatalogue::GetBuses() const
+{
+    return buses_;
+}
+
+const sv_set& TransportCatalogue::GetValidStops() const
+{
+    return valid_stops_;
+}
+
+const sv_set& TransportCatalogue::GetValidBuses() const
+{
+    return valid_buses_;
 }

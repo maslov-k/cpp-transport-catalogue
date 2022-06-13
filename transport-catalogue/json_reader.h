@@ -20,36 +20,29 @@ struct Queries
 class Reader
 {
 public:
-	explicit Reader(TransportCatalogue& tc)
-		: tc_(tc)
-	{
-	}
-	void ReadJSON(std::istream& input);
-	void ParseRequests();
-	void GetResponses(std::ostream& output);
+    void MakeBase(std::istream& input);
+    void ProcessRequests(std::istream& input, std::ostream& output);
 
 private:
-	Queries ParseBaseRequests(const json::Node& base_requests);
-	std::pair<std::vector<const domain::Stop*>, std::unordered_set<std::string_view>>
-		GetStops(const json::Array& stops_array, bool is_round) const;
-	void ExecuteStatRequests(const json::Node& stat_requests,
+    json::Dict ReadJSON(std::istream& input);
+    Queries ParseBaseRequests(const json::Node& base_requests);
+    void ExecuteStatRequests(const json::Node& stat_requests, const transport::TransportCatalogue& tc,
 		const transport::request_handler::RequestHandler& handler, std::ostream& output);
-	void ExecuteStopRequest(const json::Dict& query_dict,
+    void ExecuteStopRequest(const json::Dict& query_dict, const transport::TransportCatalogue& tc,
 		const transport::request_handler::RequestHandler& handler, json::Builder& builder);
 	void ExecuteBusRequest(const json::Dict& query_dict,
 		const transport::request_handler::RequestHandler& handler, json::Builder& builder);
-	void ExecuteMapRequest(const json::Dict& query_dict,
-		const transport::request_handler::RequestHandler& handler, json::Builder& builder);
-	void ExecuteRouteRequest(const json::Dict& query_dict,
-		const transport::request_handler::RequestHandler& handler, json::Builder& builder);
-	renderer::RenderSettings ParseRenderSettings() const;
-	router::RoutingSettings ParseRoutingSettings() const;
+    void ExecuteMapRequest(const json::Dict& query_dict, const transport::TransportCatalogue& tc,
+        const transport::request_handler::RequestHandler& handler, json::Builder& builder);
+    void ExecuteRouteRequest(const json::Dict& query_dict,
+        const transport::request_handler::RequestHandler& handler, json::Builder& builder);
+    std::pair<std::vector<const transport::domain::Stop*>,
+              std::unordered_set<std::string_view>> GetStops( const transport::TransportCatalogue& tc,
+                                                              const json::Array& stops_array,
+                                                              bool is_round) const;
+    renderer::RenderSettings ParseRenderSettings(const json::Dict& requests) const;
+    router::RoutingSettings ParseRoutingSettings(const json::Dict& requests) const;
 	svg::Color GetColor(json::Node color_node) const;
-
-	TransportCatalogue& tc_;
-	json::Dict requests_;
-	transport::sv_set valid_buses_;
-	transport::sv_set valid_stops_;
 };
 
 } // namespace transport::json_reader

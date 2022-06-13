@@ -7,19 +7,24 @@ using namespace graph;
 using namespace transport;
 using namespace std;
 
-TransportRouter::TransportRouter(const TransportCatalogue& tc, const sv_set& buses,
-	const sv_set& stops, RoutingSettings settings)
-	: tc_(tc), tc_graph_(stops.size() * 2), settings_(settings), buses_(buses)
+TransportRouter::TransportRouter(const transport::TransportCatalogue &tc)
+    : tc_(&tc)
+{
+}
+
+TransportRouter::TransportRouter(const TransportCatalogue& tc, const RoutingSettings& settings)
+    : tc_(&tc), tc_graph_(tc_->GetValidStops().size() * 2), settings_(settings)
 {
 	int stop_index = 0;
-	for (string_view stop_name : stops)
+    for (string_view stop_name : tc_->GetValidStops())
 	{
 		stops_indexes_[stop_name] = stop_index++;
-	}
+    }
 }
 
 void TransportRouter::BuildGraph()
 {
+
 	for (auto [stop_name, stop_index] : stops_indexes_)
 	{
 		VertexId vertex_1 = stop_index * 2;
@@ -30,11 +35,11 @@ void TransportRouter::BuildGraph()
 								 static_cast<double>(settings_.bus_wait_time),
 								 string_view() };
 	}
-	double kmh_to_m_per_min = 3.6 / 60;
+    double kmh_to_m_per_min = 3.6 / 60;
 
-	for (string_view bus_name : buses_)
+    for (string_view bus_name : tc_->GetValidBuses())
 	{
-		const domain::Bus* bus = tc_.SearchBus(bus_name);
+        const domain::Bus* bus = tc_->SearchBus(bus_name);
 		const vector<const domain::Stop*>& stops = bus->stops;
 		for (auto stop_from_it = stops.begin(); stop_from_it != prev(stops.end()); ++stop_from_it)
 		{
@@ -46,7 +51,7 @@ void TransportRouter::BuildGraph()
 				VertexId stop_to_vertex_1 = stops_indexes_[stop_to_name] * 2;
 				double time_between_stops = GetDistanceBetweenStops(stops, distance(stops.begin(), stop_from_it),
 																		   distance(stops.begin(), stop_to_it))
-																	/ settings_.bus_velocity * kmh_to_m_per_min;
+                                                                    / settings_.bus_velocity * kmh_to_m_per_min;
 				EdgeId edge_id = tc_graph_.AddEdge({ stop_from_vertex_2, stop_to_vertex_1, time_between_stops });
 				edges_info_[edge_id] = { EdgeType::BUS,
 										 stop_to_name,
@@ -55,7 +60,42 @@ void TransportRouter::BuildGraph()
 										 static_cast<int>(distance(stop_from_it, stop_to_it)) };
 			}
 		}
-	}
+    }
+}
+
+const graph::DirectedWeightedGraph<double>& TransportRouter::GetGraph() const
+{
+    return tc_graph_;
+}
+
+const RoutingSettings &TransportRouter::GetRoutingSettings() const
+{
+    return settings_;
+}
+
+const EdgeInfo& router::TransportRouter::GetEdgeInfo(EdgeId edge_id) const
+{
+    return edges_info_.at(edge_id);
+}
+
+void TransportRouter::SetGraph(graph::DirectedWeightedGraph<double> graph)
+{
+    tc_graph_ = move(graph);
+}
+
+void TransportRouter::SetRoutingSettings(RoutingSettings routing_settings)
+{
+    settings_ = move(settings_);
+}
+
+void TransportRouter::AddStopIndex(std::string_view name, int index)
+{
+    stops_indexes_[name] = index;
+}
+
+void TransportRouter::AddEdgeInfo(graph::EdgeId edge_id, EdgeInfo edge_info)
+{
+    edges_info_[edge_id] = move(edge_info);
 }
 
 optional<RouteData> TransportRouter::GetRouteData(string_view stop_from_name, string_view stop_to_name) const
@@ -87,14 +127,9 @@ double TransportRouter::GetDistanceBetweenStops(const vector<const domain::Stop*
 	double distance = 0;
 	for (auto it = next(stops.begin(), stop_from_index); it != next(stops.begin(), stop_to_index); ++it)
 	{
-		distance += tc_.GetDistanceBetweenStops(*it, *next(it));
+        distance += tc_->GetDistanceBetweenStops(*it, *next(it));
 	}
 	return distance;
-}
-
-EdgeInfo router::TransportRouter::GetEdgeInfo(EdgeId edge_id) const
-{
-	return edges_info_.at(edge_id);
 }
 
 optional<VertexId> TransportRouter::GetVertexId(string_view stop_name) const

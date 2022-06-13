@@ -43,24 +43,29 @@ struct RouteData
 class TransportRouter
 {
 public:
-	explicit TransportRouter(const transport::TransportCatalogue& tc,
-		const transport::sv_set& buses, const transport::sv_set& stops, RoutingSettings settings);
+    explicit TransportRouter(const transport::TransportCatalogue& tc);
+    explicit TransportRouter(const transport::TransportCatalogue& tc, const RoutingSettings& settings);
 
-	void BuildGraph();
+    void BuildGraph();
+    const graph::DirectedWeightedGraph<double>& GetGraph() const;
+    const RoutingSettings& GetRoutingSettings() const;
+    const EdgeInfo& GetEdgeInfo(graph::EdgeId edge_id) const;
+
+    void SetGraph(graph::DirectedWeightedGraph<double> graph);
+    void SetRoutingSettings(RoutingSettings routing_settings);
+    void AddStopIndex(std::string_view name, int index);
+    void AddEdgeInfo(graph::EdgeId edge_id, EdgeInfo edge_info);
 
 	std::optional<RouteData> GetRouteData(std::string_view stop_from_name, std::string_view stop_to_name) const;
 
 private:
 	double GetDistanceBetweenStops(const std::vector<const transport::domain::Stop*>& stops, int stop_from_index, int stop_to_index);
 
-	EdgeInfo GetEdgeInfo(graph::EdgeId edge_id) const;
-
 	std::optional<graph::VertexId> GetVertexId(std::string_view stop_name) const;
 
-	const transport::TransportCatalogue&		tc_;
+    const transport::TransportCatalogue*		tc_;
 	graph::DirectedWeightedGraph<double>		tc_graph_;
-	RoutingSettings								settings_;
-	const transport::sv_set&					buses_;
+    RoutingSettings								settings_;
 	std::unordered_map<std::string_view, int>	stops_indexes_;
 	std::unordered_map<graph::EdgeId, EdgeInfo>	edges_info_;
 };
