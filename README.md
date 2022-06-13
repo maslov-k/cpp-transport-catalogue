@@ -23,8 +23,11 @@
 * "routing_settings": параметры построения маршрутов.
 
 Пример запросов на построение базы (ключ make_base): https://pastebin.com/UPcd4hzp
+
 Пример запросов к базе (ключ process_requests): https://pastebin.com/cNWsGQSr
+
 Вывод программы: https://pastebin.com/m5Ey4MrJ
+
 Полученная карта маршрутов в формате SVG: https://pastebin.com/MYWdxm1Q
 
 ## Требования:
